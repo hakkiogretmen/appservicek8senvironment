@@ -1,8 +1,18 @@
-# appservicek8senvironment
+# variables
 
     aksClusterGroupName="aciburstdemo" # Name of resource group for the AKS cluster
     aksName="Arcfork8s-demo" # Name of the AKS cluster
     resourceLocation="westeurope" # "eastus" or "westeurope"
+    groupName="arcdemo" # Name of resource group for the connected cluster
+    clusterName="${groupName}-cluster" # Name of the connected cluster resource
+    workspaceName="$groupName-workspace" # Name of the Log Analytics workspace
+    extensionName="appservice-ext" # Name of the App Service extension
+    namespace="appservice-ns" # Namespace in your cluster to install the extension and provision resources
+    kubeEnvironmentName="hybrid-app-service" # Name of the App Service Kubernetes environment resource
+    customLocationName="traefik-Turkey" # Name of the custom location
+    storageaccountname="functiontooling"
+    
+# appservicek8senvironment
 
     az group create -g $aksClusterGroupName -l $resourceLocation
     az aks create --resource-group $aksClusterGroupName --name $aksName --enable-aad --generate-ssh-keys
@@ -16,42 +26,34 @@
 
     kubectl get ns
 
-    groupName="arcdemo" # Name of resource group for the connected cluster
-
     az group create -g $groupName -l $resourceLocation
-
-    clusterName="${groupName}-cluster" # Name of the connected cluster resource
 
     az connectedk8s connect --resource-group $groupName --name $clusterName
 
     az connectedk8s show --resource-group $groupName --name $clusterName
 
 #   create az monitor workspace 
-
-    workspaceName="$groupName-workspace" # Name of the Log Analytics workspace
-
     az monitor log-analytics workspace create \
         --resource-group $groupName \
         --workspace-name $workspaceName
-
 
     logAnalyticsWorkspaceId=$(az monitor log-analytics workspace show \
         --resource-group $groupName \
         --workspace-name $workspaceName \
         --query customerId \
         --output tsv)
+    
     logAnalyticsWorkspaceIdEnc=$(printf %s $logAnalyticsWorkspaceId | base64) # Needed for the next step
+    
     logAnalyticsKey=$(az monitor log-analytics workspace get-shared-keys \
         --resource-group $groupName \
         --workspace-name $workspaceName \
         --query primarySharedKey \
         --output tsv)
+    
     logAnalyticsKeyEncWithSpace=$(printf %s $logAnalyticsKey | base64)
+    
     logAnalyticsKeyEnc=$(echo -n "${logAnalyticsKeyEncWithSpace//[[:space:]]/}") # Needed for the next step
-
-    extensionName="appservice-ext" # Name of the App Service extension
-    namespace="appservice-ns" # Namespace in your cluster to install the extension and provision resources
-    kubeEnvironmentName="hybrid-app-service" # Name of the App Service Kubernetes environment resource
 
     az k8s-extension create \
         --resource-group $groupName \
@@ -89,7 +91,6 @@
     kubectl get pods -n $namespace
     
 #   create custom location    
-    customLocationName="traefik-Turkey" # Name of the custom location
 
     connectedClusterId=$(az connectedk8s show --resource-group $groupName --name $clusterName --query id --output tsv)
 
@@ -126,11 +127,8 @@
     az extension remove --name appservice-kube
     az extension add --yes --source "https://aka.ms/appsvc/appservice_kube-latest-py2.py3-none-any.whl"
 
-    customLocationGroup="arcdemo"
-    customLocationName=traefik-turkey
-
     az webapp create \
-        --resource-group arcdemo \
+        --resource-group $groupName \
         --name hybrid-app-node \
         --custom-location $customLocationId \
         --runtime 'NODE|12-lts'
@@ -139,7 +137,7 @@
     git clone https://github.com/Azure-Samples/nodejs-docs-hello-world
     cd nodejs-docs-hello-world
     zip -r package.zip .
-    az webapp deployment source config-zip --resource-group arcdemo --name hybrid-app-node --src package.zip
+    az webapp deployment source config-zip --resource-group $groupName --name hybrid-app-node --src package.zip
 
 #   create function 
 
@@ -148,8 +146,6 @@
     func new --name HttpExample --template "HTTP trigger" --authlevel "anonymous"
     func start
 
-
-    customLocationName="traefik-Turkey" # Name of the custom location
     connectedClusterId=$(az connectedk8s show --resource-group $groupName --name $clusterName --query id --output tsv)
     
     customLocationId=$(az customlocation show \
@@ -157,7 +153,7 @@
     --name $customLocationName \
     --query id \
     --output tsv)
-    storageaccountname="functiontooling"
+    
     az storage account create --name $storageaccountname --location $resourceLocation --resource-group $groupName --sku Standard_LRS
     
     az functionapp create --resource-group $groupName --name hybrid-func-app --custom-location $customLocationId --storage-account $storageaccountname --functions-version 3 --runtime dotnet
