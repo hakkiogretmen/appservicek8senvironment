@@ -11,6 +11,7 @@
     kubeEnvironmentName="hybrid-app-service" # Name of the App Service Kubernetes environment resource
     customLocationName="traefik-Turkey" # Name of the custom location
     storageaccountname="functiontooling"
+    logicAppName="HybridLogicApp"
     
 # appservicek8senvironment
 
@@ -160,4 +161,13 @@
     
     func azure functionapp publish hybrid-func-app
     
+#   Create logic apps
+    az extension add --yes --source "https://aka.ms/logicapp-latest-py2.py3-none-any.whl"
+    az logicapp create --resource-group $groupName --name $logicAppName --storage-account $storageaccountname --custom-location $customLocationName
+    
+    #az logicapp create --resource-group $groupName --name $logicAppName --storage-account $storageaccountname --custom-location $customLocationName --deployment-container-image-name myacr.azurecr.io/myimage:tag --docker-registry-server-password passw0rd --docker-registry-server-user MyUser
+    
+    az logicapp deployment source config-zip --name $logicAppName --resource-group $groupName --src C:\uploads\v22.zip 
+    az logicapp start --name $logicAppName --resource-group $groupName
+   
     
