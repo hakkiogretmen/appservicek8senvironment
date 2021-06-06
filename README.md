@@ -138,5 +138,25 @@ cd nodejs-docs-hello-world
 zip -r package.zip .
 az webapp deployment source config-zip --resource-group arcdemo --name hybrid-app-node --src package.zip
 
+#Create the local function project
+func init LocalFunctionProj --dotnet
+cd LocalFunctionProj
+func new --name HttpExample --template "HTTP trigger" --authlevel "anonymous"
+func start
 
+customLocationName="traefik-Turkey" # Name of the custom location
+connectedClusterId=$(az connectedk8s show --resource-group $groupName --name $clusterName --query id --output tsv)
 
+    customLocationId=$(az customlocation show \
+    --resource-group $groupName \
+    --name $customLocationName \
+    --query id \
+    --output tsv)
+    storageaccountname="functiontooling"
+    az storage account create --name $storageaccountname --location $resourceLocation --resource-group $groupName --sku Standard_LRS
+    
+    az functionapp create --resource-group $groupName --name hybrid-func-app --custom-location $customLocationId --storage-account $storageaccountname --functions-version 3 --runtime dotnet
+    
+    func azure functionapp publish hybrid-func-app
+    
+    
