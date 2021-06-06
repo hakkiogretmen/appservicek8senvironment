@@ -144,9 +144,10 @@ cd LocalFunctionProj
 func new --name HttpExample --template "HTTP trigger" --authlevel "anonymous"
 func start
 
-customLocationName="traefik-Turkey" # Name of the custom location
-connectedClusterId=$(az connectedk8s show --resource-group $groupName --name $clusterName --query id --output tsv)
 
+    customLocationName="traefik-Turkey" # Name of the custom location
+    connectedClusterId=$(az connectedk8s show --resource-group $groupName --name $clusterName --query id --output tsv)
+    
     customLocationId=$(az customlocation show \
     --resource-group $groupName \
     --name $customLocationName \
